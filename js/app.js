@@ -294,6 +294,7 @@ function generarPDF() {
       .save()
       .then(function () {
         document.body.removeChild(contenedorTemporal);
+        data.filename = nombreArchivo;
         guardarHistorial(data);
         document.getElementById("modal-pdf-nro").textContent = nro;
 
@@ -430,23 +431,31 @@ function renderHistorial() {
       var partes = fecha.split("-");
       if (partes.length === 3) fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
     }
+    var monedaBadge = item.moneda === "USD"
+      ? '<span class="badge bg-success me-1">USD</span>'
+      : '<span class="badge bg-info text-dark me-1">ARS</span>';
+    var titulo = item.filename
+      ? escapeHtml(item.filename)
+      : "Cotizaci\u00f3n N\u00ba " + item.nro;
     html +=
       '<div class="list-group-item historial-item">' +
       '<div class="d-flex justify-content-between align-items-start">' +
-      "<div>" +
-      "<h6 class=\"mb-0\">N\u00ba " + item.nro + "</h6>" +
-      '<small class="text-muted">' + escapeHtml(item.cliente.nombre || "\u2014") + "</small>" +
-      "</div>" +
-      '<div class="text-end">' +
-      '<div class="fw-bold">' + formatearMoneda(item.total, item.moneda) + "</div>" +
-      '<small class="text-muted">' + fecha + "</small>" +
-      "</div>" +
-      "</div>" +
+      '<div class="fw-semibold small text-truncate me-2">' + titulo + '</div>' +
+      '<div class="text-nowrap fw-bold small">' + formatearMoneda(item.total, item.moneda) + '</div>' +
+      '</div>' +
+      '<div class="d-flex justify-content-between align-items-center mt-1">' +
+      '<div class="small">' +
+      monedaBadge +
+      'N\u00ba ' + item.nro + ' \u00b7 ' + escapeHtml(item.cliente.nombre || "\u2014") +
+      '</div>' +
+      '<small class="text-muted text-nowrap ms-2">' + fecha + '</small>' +
+      '</div>' +
+      (item.validez ? '<div class="small text-muted mt-1">Validez: ' + escapeHtml(item.validez) + '</div>' : '') +
       '<div class="d-flex gap-2 mt-2">' +
       '<button class="btn btn-sm btn-outline-primary btn-ver-historial" data-index="' + index + '">Ver</button>' +
       '<button class="btn btn-sm btn-outline-danger btn-eliminar-historial" data-index="' + index + '" title="Eliminar"><i class="bi bi-trash"></i></button>' +
-      "</div>" +
-      "</div>";
+      '</div>' +
+      '</div>';
   });
   html += "</div>";
   body.innerHTML = html;
@@ -478,7 +487,7 @@ function descargarPDFHistorial(index) {
   var data = historial[index];
   if (!data) return;
 
-  var nombreArchivo = "Cotizacion_" + data.nro + ".pdf";
+  var nombreArchivo = data.filename || "Cotizacion_" + data.nro + ".pdf";
 
   var template = document.getElementById("plantilla-a4");
   var clon = template.cloneNode(true);
