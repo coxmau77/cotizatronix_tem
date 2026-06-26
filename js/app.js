@@ -4,6 +4,11 @@ var ALLOWED_EMAILS = "__ALLOWED_EMAILS__".split(",");
 if (ALLOWED_EMAILS[0] === "__ALLOWED_EMAILS__") {
   ALLOWED_EMAILS = ["correo@email.com", "mi-correo@correo.com"];
 }
+var company_info = {
+  empresa: "Mi Empresa S.A.",
+  cuit: "30-12345678-0",
+  email: "info@miempresa.com.ar"
+};
 var pendingReset = null;
 var pendingDeleteIndex = null;
 var pendingPreviewIndex = null;
@@ -151,12 +156,6 @@ function resetSeccion(seccion) {
     localStorage.removeItem(key);
     el.value = "";
   });
-
-  if (seccion === "emisor") {
-    localStorage.removeItem(STORE_PREFIX + "logo");
-    document.getElementById("input-logo").value = "";
-    showLogoPreview(LOGO_DEFAULT);
-  }
 
   if (seccion === "metadatos") {
     document.getElementById("input-fecha").value = new Date()
@@ -368,9 +367,9 @@ function capturarDatosCotizacion(nro) {
     validez: document.getElementById("input-validez").value,
     moneda: obtenerMoneda(),
     emisor: {
-      empresa: document.getElementById("input-empresa").value,
-      cuit: document.getElementById("input-cuit").value,
-      email: document.getElementById("input-email").value,
+      empresa: company_info.empresa,
+      cuit: company_info.cuit,
+      email: company_info.email,
       logo: localStorage.getItem(STORE_PREFIX + "logo") || LOGO_DEFAULT
     },
     cliente: {
@@ -629,6 +628,9 @@ function init() {
     .split("T")[0];
 
   cargarDatos();
+  document.getElementById("header-empresa").textContent = company_info.empresa;
+  document.getElementById("header-cuit").textContent = company_info.cuit;
+  document.getElementById("header-email").textContent = company_info.email;
   cambiarMoneda(obtenerMoneda());
 
   agregarItem(1, "", "");
@@ -754,19 +756,6 @@ function init() {
 
   document.getElementById("modalPreview").addEventListener("hidden.bs.modal", function () {
     pendingPreviewIndex = null;
-  });
-
-  document.getElementById("input-logo").addEventListener("change", function () {
-    var file = this.files[0];
-    if (file) {
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        var dataUrl = e.target.result;
-        localStorage.setItem(STORE_PREFIX + "logo", dataUrl);
-        showLogoPreview(dataUrl);
-      };
-      reader.readAsDataURL(file);
-    }
   });
 
   document.getElementById("btn-login").addEventListener("click", function () {
