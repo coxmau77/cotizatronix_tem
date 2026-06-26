@@ -1,6 +1,9 @@
 var STORE_PREFIX = "cotizacion-";
 var LOGO_DEFAULT = "img/icon-color.svg";
-var ALLOWED_EMAILS = ["correo@email.com", "mi-correo@correo.com"];
+var ALLOWED_EMAILS = "__ALLOWED_EMAILS__".split(",");
+if (ALLOWED_EMAILS[0] === "__ALLOWED_EMAILS__") {
+  ALLOWED_EMAILS = ["correo@email.com", "mi-correo@correo.com"];
+}
 var pendingReset = null;
 var pendingDeleteIndex = null;
 var pendingPreviewIndex = null;
@@ -531,38 +534,6 @@ function descargarPDFHistorial(index) {
     });
 }
 
-function reenviarCotizacion(index) {
-  var historial = obtenerHistorial();
-  var data = historial[index];
-  if (!data) return;
-
-  document.getElementById("input-empresa").value = data.emisor.empresa || "";
-  document.getElementById("input-cuit").value = data.emisor.cuit || "";
-  document.getElementById("input-email").value = data.emisor.email || "";
-
-  document.getElementById("input-cliente").value = data.cliente.nombre || "";
-  document.getElementById("input-direccion").value = data.cliente.direccion || "";
-  document.getElementById("input-validez").value = data.validez || "";
-
-  var logo = data.emisor.logo;
-  if (logo && logo !== LOGO_DEFAULT) {
-    localStorage.setItem(STORE_PREFIX + "logo", logo);
-    showLogoPreview(logo);
-  }
-
-  cambiarMoneda(data.moneda);
-
-  var container = document.getElementById("items-container");
-  container.innerHTML = "";
-  data.items.forEach(function (item) {
-    agregarItem(item.cant, item.desc, item.precio);
-  });
-
-  bootstrap.Modal.getInstance(document.getElementById("modalPreview")).hide();
-  pendingPreviewIndex = null;
-  abrirOffcanvas("offcanvasForm");
-}
-
 function abrirOffcanvas(id) {
   if (typeof bootstrap === "undefined") {
     alert("Error: Bootstrap no se pudo cargar. Verifica tu conexión a internet y recarga la página.");
@@ -601,12 +572,19 @@ function encriptarUsuario(nombre, email) {
   return obtenerClaveCrypto().then(function(key) {
     return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, enc.encode(data));
   }).then(function(ct) {
-    localStorage.setItem(STORE_PREFIX + "email", JSON.stringify({ iv: bufToBase64(iv), data: bufToBase64(ct) }));
+    sessionStorage.setItem(STORE_PREFIX + "email", JSON.stringify({ iv: bufToBase64(iv), data: bufToBase64(ct) }));
   });
 }
 
 function desencriptarUsuario() {
-  var stored = localStorage.getItem(STORE_PREFIX + "email");
+  var stored = sessionStorage.getItem(STORE_PREFIX + "email");
+  if (!stored) {
+    stored = localStorage.getItem(STORE_PREFIX + "email");
+    if (stored) {
+      sessionStorage.setItem(STORE_PREFIX + "email", stored);
+      localStorage.removeItem(STORE_PREFIX + "email");
+    }
+  }
   if (!stored) return Promise.resolve(null);
   try {
     var obj = JSON.parse(stored);
@@ -630,7 +608,7 @@ function actualizarNavbar(nombre, email) {
 }
 
 function cerrarSesion() {
-  localStorage.removeItem(STORE_PREFIX + "email");
+  sessionStorage.removeItem(STORE_PREFIX + "email");
   document.getElementById("navbar-email").style.display = "none";
   document.getElementById("btn-logout").style.display = "none";
   var modal = new bootstrap.Modal(document.getElementById("modalLogin"));
@@ -774,12 +752,6 @@ function init() {
     }
   });
 
-  document.getElementById("btn-preview-reenviar").addEventListener("click", function () {
-    if (pendingPreviewIndex !== null) {
-      reenviarCotizacion(pendingPreviewIndex);
-    }
-  });
-
   document.getElementById("modalPreview").addEventListener("hidden.bs.modal", function () {
     pendingPreviewIndex = null;
   });
@@ -843,7 +815,7 @@ function init() {
     if (usuario && usuario.email && emailAutorizado(usuario.email)) {
       actualizarNavbar(usuario.nombre, usuario.email);
     } else {
-      localStorage.removeItem(STORE_PREFIX + "email");
+      sessionStorage.removeItem(STORE_PREFIX + "email");
       var modal = new bootstrap.Modal(document.getElementById("modalLogin"));
       modal.show();
     }
