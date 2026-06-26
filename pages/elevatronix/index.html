@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Cotizaciones</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <div class="panel panel-form">
+            <h2>Nueva Cotización</h2>
+
+            <div class="form-section" data-section="emisor">
+                <div class="section-header">
+                    <h3>Emisor</h3>
+                    <button class="btn-reset" title="Reiniciar emisor" data-reset="emisor">↺</button>
+                </div>
+                <div class="form-group">
+                    <label for="input-logo">Logo de la Empresa</label>
+                    <input type="file" id="input-logo" accept="image/*">
+                    <img id="preview-logo" class="logo-preview" src="img/logo-elevatronix.png" alt="Logo">
+                </div>
+                <div class="form-group">
+                    <label for="input-empresa">Nombre de la Empresa</label>
+                    <input type="text" id="input-empresa" placeholder="Ej: Elevatronix S.A."
+                        data-persist="emisor-empresa">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-cuit">CUIT</label>
+                        <input type="text" id="input-cuit" placeholder="30-12345678-0" data-persist="emisor-cuit">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-email">Email</label>
+                        <input type="email" id="input-email" placeholder="info@empresa.com.ar"
+                            data-persist="emisor-email">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section" data-section="cliente">
+                <div class="section-header">
+                    <h3>Cliente</h3>
+                    <button class="btn-reset" title="Reiniciar cliente" data-reset="cliente">↺</button>
+                </div>
+                <div class="form-group">
+                    <label for="input-cliente">Empresa Cliente</label>
+                    <input type="text" id="input-cliente" placeholder="Ej: LIFCAR S.A." data-persist="cliente-nombre">
+                </div>
+                <div class="form-group">
+                    <label for="input-direccion">Planta / Dirección</label>
+                    <input type="text" id="input-direccion" placeholder="Ej: Ruta 9 Km 45, Campana"
+                        data-persist="cliente-direccion">
+                </div>
+            </div>
+
+            <div class="form-section" data-section="metadatos">
+                <div class="section-header">
+                    <h3>Metadatos</h3>
+                    <button class="btn-reset" title="Reiniciar metadatos" data-reset="metadatos">↺</button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-fecha">Fecha</label>
+                        <input type="date" id="input-fecha">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-validez">Validez</label>
+                        <input type="text" id="input-validez" placeholder="15 días" data-persist="metadatos-validez">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section" data-section="items">
+                <div class="section-header">
+                    <h3>Items</h3>
+                    <div class="currency-toggle" id="currency-toggle">
+                        <button class="currency-option active" data-currency="ARS">AR$</button>
+                        <button class="currency-option" data-currency="USD">U$D</button>
+                    </div>
+                    <button class="btn-reset" title="Reiniciar items" data-reset="items">↺</button>
+                </div>
+                <!-- <div class="items-header">
+                    <span>Cant.</span>
+                    <span>Descripción</span>
+                    <span>P. Unitario</span>
+                    <span></span>
+                </div> -->
+                <div id="items-container"></div>
+                <button id="btn-agregar-item" class="btn-secondary">+ Agregar Item</button>
+                <div class="items-totals">
+                    <div class="items-totals-row">
+                        <span>Subtotal:</span>
+                        <span id="items-subtotal">AR$ 0,00</span>
+                    </div>
+                    <div class="items-totals-row">
+                        <span>IVA 21%:</span>
+                        <span id="items-iva">AR$ 0,00</span>
+                    </div>
+                    <div class="items-totals-row items-totals-total">
+                        <span>TOTAL:</span>
+                        <span id="items-total">AR$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-generar">Generar Cotización PDF</button>
+        </div>
+
+        <div class="panel panel-historial">
+            <h2>Historial de Cotizaciones</h2>
+            <div id="historial-lista">
+                <p class="historial-empty">No hay cotizaciones guardadas aún.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="pdf-wrapper">
+        <div class="a4-template" id="plantilla-a4">
+
+            <div class="pdf-header">
+                <div class="pdf-logo">
+                    <img id="render-logo" src="" alt="Logo Empresa">
+                </div>
+                <div class="pdf-company-info">
+                    <h2 id="render-empresa">Empresa Emisora</h2>
+                    <p id="render-cuit">CUIT: 00-00000000-0</p>
+                    <p id="render-email">info@empresa.com.ar</p>
+                </div>
+            </div>
+
+            <div class="pdf-meta-box">
+                <div><strong>Cotización Nº:</strong> <span id="render-nro">0001</span></div>
+                <div><strong>Fecha:</strong> <span id="render-fecha">--/--/----</span></div>
+                <div><strong>Validez:</strong> <span id="render-validez">---</span></div>
+            </div>
+
+            <div class="pdf-client-box">
+                <p><strong>Cliente:</strong> <span id="render-cliente">---</span></p>
+                <p><strong>Dirección:</strong> <span id="render-direccion">---</span></p>
+            </div>
+
+            <table class="pdf-table">
+                <thead>
+                    <tr>
+                        <th>Cant.</th>
+                        <th>Descripción</th>
+                        <th class="money">P. Unitario</th>
+                        <th class="money">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="render-items-body"></tbody>
+            </table>
+
+            <div class="pdf-totals clearfix">
+                <div class="pdf-totals-row">
+                    <span>Sub-total:</span>
+                    <span id="render-subtotal">AR$ 0,00</span>
+                </div>
+                <div class="pdf-totals-row">
+                    <span>IVA 21%:</span>
+                    <span id="render-iva">AR$ 0,00</span>
+                </div>
+                <div class="pdf-totals-row bold">
+                    <span>TOTAL:</span>
+                    <span id="render-total">AR$ 0,00</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>

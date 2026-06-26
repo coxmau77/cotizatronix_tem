@@ -1,12 +1,16 @@
 var STORE_PREFIX = "cotizacion-";
 var LOGO_DEFAULT = "img/icon-color.svg";
+var ALLOWED_EMAILS = ["correo@email.com", "mi-correo@correo.com"];
+var pendingReset = null;
+var pendingDeleteIndex = null;
+var pendingPreviewIndex = null;
 
 function obtenerMoneda() {
   return localStorage.getItem(STORE_PREFIX + "moneda") || "ARS";
 }
 
-function formatearMoneda(n) {
-  var moneda = obtenerMoneda();
+function formatearMoneda(n, moneda) {
+  moneda = moneda || obtenerMoneda();
   var signo = n < 0 ? "- " : "";
   var abs = Math.abs(n);
   if (moneda === "USD") {
@@ -161,30 +165,36 @@ function resetSeccion(seccion) {
 function agregarItem(cant, desc, precio) {
   var container = document.getElementById("items-container");
   var div = document.createElement("div");
-  div.className = "item-row";
+  div.className = "card mb-2 item-row border";
 
   div.innerHTML =
-    '<div class="item-option">' +
-    '<label for="item_cant">' +
-    "<p>Cant.</p>" +
-    '<input type="number" id="item_cant" class="item-cant" value="' +
+    '<div class="card-body py-2">' +
+    '<div class="row g-2 mb-2">' +
+    '<div class="col-4">' +
+    '<label class="form-label small text-muted mb-0">Cant.</label>' +
+    '<input type="number" class="form-control form-control-sm item-cant" value="' +
     (cant ?? 1) +
     '" min="1" step="1">' +
-    "</label>" +
-    // '<span class="item-multiply">x</span>' +
-    '<div class="precio-group">' +
-    "<label>Monto</label>" +
-    '<input type="number" class="item-precio" value="' +
+    "</div>" +
+    '<div class="col-8">' +
+    '<label class="form-label small text-muted mb-0">P. Unitario</label>' +
+    '<input type="number" class="form-control form-control-sm item-precio" value="' +
     (precio ?? "") +
     '" step="0.01" placeholder="0,00">' +
-    '<span class="preview-monto"></span>' +
     "</div>" +
     "</div>" +
-    '<div class="item-footer">' +
-    '<textarea class="item-desc" placeholder="Descripción">' +
+    '<div class="row g-2">' +
+    '<div class="col-10">' +
+    '<label class="form-label small text-muted mb-0">Descripción</label>' +
+    '<textarea class="form-control form-control-sm item-desc" placeholder="Descripción" rows="2">' +
     (desc ?? "") +
     "</textarea>" +
-    '<button class="btn-danger btn-remove-item" title="Eliminar">✕</button>' +
+    "</div>" +
+    '<div class="col-2 d-flex align-items-end pb-1">' +
+    '<button class="btn btn-outline-danger btn-sm btn-remove-item" title="Eliminar">✕</button>' +
+    "</div>" +
+    "</div>" +
+    '<div class="preview-monto text-end text-muted small mt-1"></div>' +
     "</div>";
 
   div.querySelector(".btn-remove-item").addEventListener("click", function () {
@@ -295,264 +305,356 @@ function poblarPlantilla() {
   document.getElementById("render-total").textContent = formatearMoneda(total);
 }
 
-// function generarPDF() {
-//     var nro = obtenerSiguienteNro();
-//     var sugerencia = 'Cotizacion_' + nro + '.pdf';
-//     var nombre = window.prompt('Nombre del archivo:', sugerencia);
-//     if (nombre === null) nombre = sugerencia;
-
-//     poblarPlantilla();
-//     guardarDatos();
-//     document.getElementById('render-nro').textContent = nro;
-
-//     var wrapper = document.getElementById('pdf-wrapper');
-//     var elemento = document.getElementById('plantilla-a4');
-//     var bodyEl = document.body;
-//     var savedBodyPadding = bodyEl.style.padding;
-
-//     bodyEl.style.padding = '0';
-
-//     wrapper.style.position = 'fixed';
-//     wrapper.style.left = '0';
-//     wrapper.style.top = '0';
-//     wrapper.style.width = '210mm';
-//     wrapper.style.zIndex = '-1';
-//     wrapper.style.opacity = '0';
-//     wrapper.style.pointerEvents = 'none';
-
-//     void elemento.offsetHeight;
-
-//     var opt = {
-//         margin: 0,
-//         filename: nombre,
-//         image: { type: 'jpeg', quality: 0.98 },
-//         html2canvas: {
-//             scale: 2,
-//             useCORS: true,
-//             windowWidth: elemento.scrollWidth,
-//             windowHeight: elemento.scrollHeight,
-//             scrollY: 0,
-//             scrollX: 0,
-//         },
-//         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-//     };
-
-//     html2pdf().set(opt).from(elemento).save().then(function () {
-//         bodyEl.style.padding = savedBodyPadding;
-//         wrapper.style.position = 'absolute';
-//         wrapper.style.left = '-9999px';
-//         wrapper.style.top = '0';
-//         wrapper.style.width = '210mm';
-//         wrapper.style.zIndex = '';
-//         wrapper.style.opacity = '';
-//         wrapper.style.pointerEvents = '';
-//     });
-
-//     resetSeccion('items');
-// }
-
-// function generarPDF() {
-//   var nro = obtenerSiguienteNro();
-//   var sugerencia = "Cotizacion_" + nro + ".pdf";
-//   var nombre = window.prompt("Nombre del archivo:", sugerencia);
-//   if (nombre === null) nombre = sugerencia;
-
-//   poblarPlantilla();
-//   guardarDatos();
-//   document.getElementById("render-nro").textContent = nro;
-
-//   var wrapper = document.getElementById("pdf-wrapper");
-//   var elemento = document.getElementById("plantilla-a4");
-
-//   // Guardamos estado original del body
-//   var bodyEl = document.body;
-//   var savedBodyPadding = bodyEl.style.padding;
-//   var savedBodyMargin = bodyEl.style.margin; // También guardamos el margen
-
-//   // 1. Limpiamos cualquier espacio que pueda desplazar el canvas
-//   bodyEl.style.padding = "0";
-//   bodyEl.style.margin = "0";
-
-//   // 2. CLAVE: Usamos 'absolute' en vez de 'fixed'
-//   wrapper.style.position = "absolute";
-//   wrapper.style.left = "0px";
-//   wrapper.style.top = "0px";
-//   wrapper.style.width = "210mm";
-//   wrapper.style.zIndex = "9999"; // Lo traemos al frente
-//   wrapper.style.opacity = "1";
-//   wrapper.style.pointerEvents = "none";
-
-//   // 3. CLAVE: Llevamos la pantalla artificialmente a la coordenada 0,0
-//   // Si hiciste scroll para tocar el botón, esto evita que el PDF salga cortado
-//   window.scrollTo(0, 0);
-
-//   // Forzamos el reflow
-//   void elemento.offsetHeight;
-
-//   var opt = {
-//     margin: 0,
-//     filename: nombre,
-//     image: { type: "jpeg", quality: 0.98 },
-//     html2canvas: {
-//       scale: 2,
-//       useCORS: true,
-//       // 4. CLAVE: Anclamos el inicio del canvas a la esquina superior izquierda
-//       x: 0,
-//       y: 0,
-//       scrollX: 0,
-//       scrollY: 0,
-//       // Hemos eliminado windowWidth y windowHeight para evitar que la
-//       // librería intente simular redimensiones de pantalla.
-//     },
-//     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-//   };
-
-//   html2pdf()
-//     .set(opt)
-//     .from(elemento)
-//     .save()
-//     .then(function () {
-//       // Restauramos todo a la normalidad
-//       bodyEl.style.padding = savedBodyPadding;
-//       bodyEl.style.margin = savedBodyMargin;
-//       wrapper.style.position = "absolute";
-//       wrapper.style.left = "-9999px";
-//       wrapper.style.top = "0";
-//       wrapper.style.zIndex = "";
-//       wrapper.style.opacity = "";
-//       wrapper.style.pointerEvents = "";
-//     });
-
-//   resetSeccion("items");
-// }
-
-// function generarPDF() {
-//   var nro = obtenerSiguienteNro();
-//   var sugerencia = "Cotizacion_" + nro + ".pdf";
-//   var nombre = window.prompt("Nombre del archivo:", sugerencia);
-//   if (nombre === null) nombre = sugerencia;
-
-//   poblarPlantilla();
-//   guardarDatos();
-//   document.getElementById("render-nro").textContent = nro;
-
-//   var wrapper = document.getElementById("pdf-wrapper");
-//   var elemento = document.getElementById("plantilla-a4");
-
-//   // 1. CLAVE: Usamos 'absolute' en lugar de 'fixed'
-//   // Esto lo ancla al inicio del documento, no a la pantalla del monitor.
-//   wrapper.style.position = "absolute";
-//   wrapper.style.left = "0px";
-//   wrapper.style.top = "0px";
-//   wrapper.style.zIndex = "9999";
-//   wrapper.style.opacity = "1";
-
-//   // 2. Nos aseguramos de estar en la parte superior del documento
-//   // para evitar desfases por scroll al momento del clic.
-//   window.scrollTo(0, 0);
-
-//   // Forzamos al navegador a recalcular el DOM
-//   void elemento.offsetHeight;
-
-//   var opt = {
-//     margin: 0,
-//     filename: nombre,
-//     image: { type: "jpeg", quality: 0.98 },
-//     html2canvas: {
-//       scale: 2,
-//       useCORS: true,
-//       // Congelamos la captura estrictamente al ancho de tu plantilla A4
-//       windowWidth: elemento.scrollWidth,
-//       scrollX: 0,
-//       scrollY: 0,
-//       // Nota: Eliminamos explicitamente x:0 e y:0 aquí para que
-//       // la librería use el bounding box natural del elemento absolute.
-//     },
-//     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-//   };
-
-//   html2pdf()
-//     .set(opt)
-//     .from(elemento)
-//     .save()
-//     .then(function () {
-//       // Restauramos el wrapper a su estado oculto
-//       wrapper.style.position = "absolute";
-//       wrapper.style.left = "-9999px";
-//       wrapper.style.top = "0";
-//       wrapper.style.zIndex = "";
-//       wrapper.style.opacity = "";
-//     });
-
-//   resetSeccion("items");
-// }
-
 function generarPDF() {
-  var nro = obtenerSiguienteNro();
-  var sugerencia = "Cotizacion_" + nro + ".pdf";
-  var nombre = window.prompt("Nombre del archivo:", sugerencia);
-  if (nombre === null) nombre = sugerencia;
+  desencriptarUsuario().then(function(usuario) {
+    if (!usuario || !emailAutorizado(usuario.email)) {
+      var modal = new bootstrap.Modal(document.getElementById("modalEmailDenied"));
+      modal.show();
+      return;
+    }
 
-  // 1. Poblamos los datos en tu plantilla original (que sigue oculta)
-  poblarPlantilla();
-  guardarDatos();
-  document.getElementById("render-nro").textContent = nro;
+    var nro = obtenerSiguienteNro();
+    var sugerencia = "Cotizacion_" + nro + ".pdf";
+    var nombreArchivo = window.prompt("Nombre del archivo:", sugerencia);
+    if (nombreArchivo === null) nombreArchivo = sugerencia;
 
-  var elementoOriginal = document.getElementById("plantilla-a4");
+    var data = capturarDatosCotizacion(nro);
 
-  // 2. EL TRUCO DEFINITIVO: Crear un Clon Inmaculado
-  // Clonamos todo el HTML de la plantilla con sus datos ya cargados
-  var clon = elementoOriginal.cloneNode(true);
-  clon.id = "plantilla-clon"; // Cambiamos el ID para evitar conflictos en el DOM
+    poblarPlantilla();
+    guardarDatos();
+    document.getElementById("render-nro").textContent = nro;
 
-  // Creamos un contenedor temporal estrictamente limpio
-  var contenedorTemporal = document.createElement("div");
-  contenedorTemporal.style.position = "absolute";
-  contenedorTemporal.style.top = "0px";
-  contenedorTemporal.style.left = "0px";
-  contenedorTemporal.style.width = "210mm";
-  contenedorTemporal.style.background = "white";
-  contenedorTemporal.style.zIndex = "9999";
-  contenedorTemporal.style.margin = "0";
-  contenedorTemporal.style.padding = "0";
+    var elementoOriginal = document.getElementById("plantilla-a4");
 
-  // Insertamos el clon en este contenedor, y luego lo metemos al <body>
-  contenedorTemporal.appendChild(clon);
-  document.body.appendChild(contenedorTemporal);
+    var clon = elementoOriginal.cloneNode(true);
+    clon.id = "plantilla-clon";
 
-  // Llevamos la vista a la cima por seguridad
-  window.scrollTo(0, 0);
+    var contenedorTemporal = document.createElement("div");
+    contenedorTemporal.style.position = "absolute";
+    contenedorTemporal.style.top = "0px";
+    contenedorTemporal.style.left = "0px";
+    contenedorTemporal.style.width = "210mm";
+    contenedorTemporal.style.background = "white";
+    contenedorTemporal.style.zIndex = "9999";
+    contenedorTemporal.style.margin = "0";
+    contenedorTemporal.style.padding = "0";
 
-  // 3. Configuramos la exportación, pero ahora APUNTANDO AL CLON
-  var opt = {
-    margin: 0,
-    filename: nombre,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      scrollX: 0,
-      scrollY: 0,
-      // Ya no necesitamos x:0 o windowWidth porque el clon
-      // nace perfecto en la esquina 0,0 sin historial CSS.
+    contenedorTemporal.appendChild(clon);
+    document.body.appendChild(contenedorTemporal);
+
+    window.scrollTo(0, 0);
+
+    var opt = {
+      margin: 0,
+      filename: nombreArchivo,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+      },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    html2pdf()
+      .set(opt)
+      .from(clon)
+      .save()
+      .then(function () {
+        document.body.removeChild(contenedorTemporal);
+        guardarHistorial(data);
+        document.getElementById("modal-pdf-nro").textContent = nro;
+
+        var offcanvasEl = document.getElementById("offcanvasForm");
+        var offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+        if (offcanvas) offcanvas.hide();
+
+        var modal = new bootstrap.Modal(document.getElementById("modalPDF"));
+        modal.show();
+      });
+
+    resetSeccion("items");
+  });
+}
+
+function escapeHtml(str) {
+  var d = document.createElement("div");
+  d.appendChild(document.createTextNode(str));
+  return d.innerHTML;
+}
+
+function capturarDatosCotizacion(nro) {
+  var items = obtenerItems();
+  var subtotal = 0;
+  items.forEach(function (i) { subtotal += i.total; });
+  var iva = subtotal * 0.21;
+  var total = subtotal + iva;
+
+  return {
+    nro: nro,
+    fecha: document.getElementById("input-fecha").value,
+    validez: document.getElementById("input-validez").value,
+    moneda: obtenerMoneda(),
+    emisor: {
+      empresa: document.getElementById("input-empresa").value,
+      cuit: document.getElementById("input-cuit").value,
+      email: document.getElementById("input-email").value,
+      logo: localStorage.getItem(STORE_PREFIX + "logo") || LOGO_DEFAULT
     },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    cliente: {
+      nombre: document.getElementById("input-cliente").value,
+      direccion: document.getElementById("input-direccion").value
+    },
+    items: items,
+    subtotal: subtotal,
+    iva: iva,
+    total: total
   };
+}
 
-  // 4. Exportamos y luego "limpiamos la escena del crimen"
-  html2pdf()
-    .set(opt)
-    .from(clon)
-    .save()
-    .then(function () {
-      // Una vez generado el PDF, eliminamos el contenedor temporal del DOM
-      document.body.removeChild(contenedorTemporal);
-    });
+function mostrarAlmacenamientoLleno() {
+  var modal = new bootstrap.Modal(document.getElementById("modalStorageFull"));
+  modal.show();
+}
 
-  resetSeccion("items");
+function eliminarDelHistorial(index) {
+  var historial = obtenerHistorial();
+  if (index >= 0 && index < historial.length) {
+    historial.splice(index, 1);
+    localStorage.setItem(STORE_PREFIX + "historial", JSON.stringify(historial));
+    renderHistorial();
+  }
+}
+
+function guardarHistorial(data) {
+  try {
+    var historial = JSON.parse(localStorage.getItem(STORE_PREFIX + "historial") || "[]");
+    historial.unshift(data);
+    localStorage.setItem(STORE_PREFIX + "historial", JSON.stringify(historial));
+  } catch (e) {
+    if (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED") {
+      mostrarAlmacenamientoLleno();
+    }
+  }
+}
+
+function obtenerHistorial() {
+  return JSON.parse(localStorage.getItem(STORE_PREFIX + "historial") || "[]");
+}
+
+function renderHistorial() {
+  var body = document.querySelector("#offcanvasHistorial .offcanvas-body");
+  var historial = obtenerHistorial();
+
+  if (historial.length === 0) {
+    body.innerHTML =
+      '<div class="text-center py-5">' +
+      '<i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>' +
+      '<p class="text-muted mt-3 mb-0">No hay cotizaciones guardadas a\u00fan.</p>' +
+      "</div>";
+    return;
+  }
+
+  var html = '<div class="list-group">';
+  historial.forEach(function (item, index) {
+    var fecha = item.fecha;
+    if (fecha) {
+      var partes = fecha.split("-");
+      if (partes.length === 3) fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
+    }
+    html +=
+      '<div class="list-group-item historial-item">' +
+      '<div class="d-flex justify-content-between align-items-start">' +
+      "<div>" +
+      "<h6 class=\"mb-0\">N\u00ba " + item.nro + "</h6>" +
+      '<small class="text-muted">' + escapeHtml(item.cliente.nombre || "\u2014") + "</small>" +
+      "</div>" +
+      '<div class="text-end">' +
+      '<div class="fw-bold">' + formatearMoneda(item.total, item.moneda) + "</div>" +
+      '<small class="text-muted">' + fecha + "</small>" +
+      "</div>" +
+      "</div>" +
+      '<div class="d-flex gap-2 mt-2">' +
+      '<button class="btn btn-sm btn-outline-primary btn-ver-historial" data-index="' + index + '">Ver</button>' +
+      '<button class="btn btn-sm btn-outline-danger btn-eliminar-historial" data-index="' + index + '" title="Eliminar"><i class="bi bi-trash"></i></button>' +
+      "</div>" +
+      "</div>";
+  });
+  html += "</div>";
+  body.innerHTML = html;
+}
+
+function renderPreview(index) {
+  var historial = obtenerHistorial();
+  var data = historial[index];
+  if (!data) return;
+  pendingPreviewIndex = index;
+
+  document.getElementById("preview-nro").textContent = data.nro;
+
+  var template = document.getElementById("plantilla-a4");
+  var clone = template.cloneNode(true);
+  clone.id = "preview-clon";
+
+  clone.querySelector("#render-logo").src = data.emisor.logo || LOGO_DEFAULT;
+  clone.querySelector("#render-logo").style.display = "inline";
+
+  clone.querySelector("#render-empresa").textContent = data.emisor.empresa || "Empresa Emisora";
+  clone.querySelector("#render-cuit").textContent = "CUIT: " + (data.emisor.cuit || "00-00000000-0");
+  clone.querySelector("#render-email").textContent = data.emisor.email || "info@empresa.com.ar";
+
+  clone.querySelector("#render-cliente").textContent = data.cliente.nombre || "\u2014";
+  clone.querySelector("#render-direccion").textContent = data.cliente.direccion || "\u2014";
+  clone.querySelector("#render-nro").textContent = data.nro;
+
+  var fecha = data.fecha;
+  if (fecha) {
+    var partes = fecha.split("-");
+    if (partes.length === 3) fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
+  }
+  clone.querySelector("#render-fecha").textContent = fecha || "--/--/----";
+  clone.querySelector("#render-validez").textContent = data.validez || "\u2014";
+
+  var tbody = clone.querySelector("#render-items-body");
+  tbody.innerHTML = "";
+  data.items.forEach(function (item) {
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + item.cant + "</td>" +
+      "<td>" + escapeHtml(item.desc) + "</td>" +
+      '<td class="money">' + formatearMoneda(item.precio, data.moneda) + "</td>" +
+      '<td class="money">' + formatearMoneda(item.total, data.moneda) + "</td>";
+    tbody.appendChild(tr);
+  });
+
+  clone.querySelector("#render-subtotal").textContent = formatearMoneda(data.subtotal, data.moneda);
+  clone.querySelector("#render-iva").textContent = formatearMoneda(data.iva, data.moneda);
+  clone.querySelector("#render-total").textContent = formatearMoneda(data.total, data.moneda);
+
+  var container = document.getElementById("preview-container");
+  container.innerHTML = "";
+  container.appendChild(clone);
+
+  var modal = new bootstrap.Modal(document.getElementById("modalPreview"));
+  modal.show();
+}
+
+function reenviarCotizacion(index) {
+  var historial = obtenerHistorial();
+  var data = historial[index];
+  if (!data) return;
+
+  document.getElementById("input-empresa").value = data.emisor.empresa || "";
+  document.getElementById("input-cuit").value = data.emisor.cuit || "";
+  document.getElementById("input-email").value = data.emisor.email || "";
+
+  document.getElementById("input-cliente").value = data.cliente.nombre || "";
+  document.getElementById("input-direccion").value = data.cliente.direccion || "";
+  document.getElementById("input-validez").value = data.validez || "";
+
+  var logo = data.emisor.logo;
+  if (logo && logo !== LOGO_DEFAULT) {
+    localStorage.setItem(STORE_PREFIX + "logo", logo);
+    showLogoPreview(logo);
+  }
+
+  cambiarMoneda(data.moneda);
+
+  var container = document.getElementById("items-container");
+  container.innerHTML = "";
+  data.items.forEach(function (item) {
+    agregarItem(item.cant, item.desc, item.precio);
+  });
+
+  bootstrap.Modal.getInstance(document.getElementById("modalPreview")).hide();
+  pendingPreviewIndex = null;
+  abrirOffcanvas("offcanvasForm");
+}
+
+function abrirOffcanvas(id) {
+  if (typeof bootstrap === "undefined") {
+    alert("Error: Bootstrap no se pudo cargar. Verifica tu conexión a internet y recarga la página.");
+    return;
+  }
+  var el = document.getElementById(id);
+  if (!el) return;
+  var inst = bootstrap.Offcanvas.getInstance(el);
+  if (!inst) inst = new bootstrap.Offcanvas(el);
+  inst.show();
+}
+
+function base64ToBuf(b64) {
+  var bin = atob(b64), buf = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+function bufToBase64(buf) {
+  var bytes = new Uint8Array(buf), bin = "";
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+function obtenerClaveCrypto() {
+  var enc = new TextEncoder();
+  return crypto.subtle.importKey("raw", enc.encode("cotizatronix-seed-2024"), { name: "PBKDF2" }, false, ["deriveKey"]).then(function(baseKey) {
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("cotizatronix-salt"), iterations: 100000, hash: "SHA-256" }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  });
+}
+
+function encriptarUsuario(nombre, email) {
+  var data = JSON.stringify({ nombre: nombre, email: email });
+  var enc = new TextEncoder();
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  return obtenerClaveCrypto().then(function(key) {
+    return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, enc.encode(data));
+  }).then(function(ct) {
+    localStorage.setItem(STORE_PREFIX + "email", JSON.stringify({ iv: bufToBase64(iv), data: bufToBase64(ct) }));
+  });
+}
+
+function desencriptarUsuario() {
+  var stored = localStorage.getItem(STORE_PREFIX + "email");
+  if (!stored) return Promise.resolve(null);
+  try {
+    var obj = JSON.parse(stored);
+    return obtenerClaveCrypto().then(function(key) {
+      return crypto.subtle.decrypt({ name: "AES-GCM", iv: base64ToBuf(obj.iv) }, key, base64ToBuf(obj.data));
+    }).then(function(dec) {
+      return JSON.parse(new TextDecoder().decode(dec));
+    }).catch(function() { return null; });
+  } catch (e) { return Promise.resolve(null); }
+}
+
+function emailAutorizado(email) {
+  return ALLOWED_EMAILS.indexOf(email) !== -1;
+}
+
+function actualizarNavbar(nombre, email) {
+  var el = document.getElementById("navbar-email");
+  el.textContent = nombre + " <" + email + ">";
+  el.style.display = "inline";
+  document.getElementById("btn-logout").style.display = "inline-block";
+}
+
+function cerrarSesion() {
+  localStorage.removeItem(STORE_PREFIX + "email");
+  document.getElementById("navbar-email").style.display = "none";
+  document.getElementById("btn-logout").style.display = "none";
+  var modal = new bootstrap.Modal(document.getElementById("modalLogin"));
+  modal.show();
 }
 
 function init() {
+  if (typeof bootstrap === "undefined") {
+    document.getElementById("view-home").innerHTML =
+      '<div class="alert alert-danger mx-3" role="alert">' +
+      "<strong>Error de conexión:</strong> No se pudo cargar Bootstrap. " +
+      "Verifica tu conexión a internet y recarga la página.</div>";
+    return;
+  }
+
   document.getElementById("input-fecha").value = new Date()
     .toISOString()
     .split("T")[0];
@@ -580,10 +682,109 @@ function init() {
     });
   });
 
-  document.querySelectorAll("[data-reset]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      resetSeccion(btn.getAttribute("data-reset"));
+  document.querySelectorAll("[data-bs-target]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      var target = btn.getAttribute("data-bs-target");
+      if (target && target.startsWith("#offcanvas")) {
+        e.preventDefault();
+        abrirOffcanvas(target.replace("#", ""));
+      }
     });
+  });
+
+  document.getElementById("offcanvasHistorial").addEventListener("show.bs.offcanvas", renderHistorial);
+
+  document.getElementById("offcanvasHistorial").addEventListener("click", function (e) {
+    var btn = e.target.closest(".btn-ver-historial");
+    if (btn) {
+      var index = parseInt(btn.getAttribute("data-index"), 10);
+      renderPreview(index);
+      return;
+    }
+    var delBtn = e.target.closest(".btn-eliminar-historial");
+    if (delBtn) {
+      var historial = obtenerHistorial();
+      pendingDeleteIndex = parseInt(delBtn.getAttribute("data-index"), 10);
+      document.getElementById("modal-eliminar-nro").textContent = "N\u00ba " + (historial[pendingDeleteIndex] ? historial[pendingDeleteIndex].nro : "—");
+      var modal = new bootstrap.Modal(document.getElementById("modalEliminarHistorial"));
+      modal.show();
+    }
+  });
+
+  document.querySelectorAll("[data-reset]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      pendingReset = btn.getAttribute("data-reset");
+      var labels = {
+        emisor: "Emisor",
+        cliente: "Cliente",
+        metadatos: "Metadatos",
+        items: "Items",
+      };
+      document.getElementById("modal-reset-seccion").textContent =
+        labels[pendingReset] || pendingReset;
+      var modal = new bootstrap.Modal(document.getElementById("modalReset"));
+      modal.show();
+    });
+  });
+
+  document.getElementById("btn-confirmar-reset").addEventListener("click", function () {
+    if (pendingReset) {
+      resetSeccion(pendingReset);
+      pendingReset = null;
+    }
+    bootstrap.Modal.getInstance(document.getElementById("modalReset")).hide();
+  });
+
+  document.getElementById("modalReset").addEventListener("hidden.bs.modal", function () {
+    pendingReset = null;
+  });
+
+  document.getElementById("modalPDF").addEventListener("hidden.bs.modal", function () {
+    var offcanvasEl = document.getElementById("offcanvasForm");
+    var offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+    if (offcanvas) {
+      offcanvas.hide();
+    }
+  });
+
+  document.getElementById("btn-ir-historial").addEventListener("click", function () {
+    bootstrap.Modal.getInstance(document.getElementById("modalStorageFull")).hide();
+    abrirOffcanvas("offcanvasHistorial");
+  });
+
+  document.getElementById("btn-confirmar-eliminar").addEventListener("click", function () {
+    if (pendingDeleteIndex !== null) {
+      eliminarDelHistorial(pendingDeleteIndex);
+      pendingDeleteIndex = null;
+    }
+    bootstrap.Modal.getInstance(document.getElementById("modalEliminarHistorial")).hide();
+    var previewModal = bootstrap.Modal.getInstance(document.getElementById("modalPreview"));
+    if (previewModal) previewModal.hide();
+  });
+
+  document.getElementById("modalEliminarHistorial").addEventListener("hidden.bs.modal", function () {
+    pendingDeleteIndex = null;
+  });
+
+  document.getElementById("btn-preview-eliminar").addEventListener("click", function () {
+    if (pendingPreviewIndex !== null) {
+      pendingDeleteIndex = pendingPreviewIndex;
+      var historial = obtenerHistorial();
+      document.getElementById("modal-eliminar-nro").textContent = "N\u00ba " + (historial[pendingDeleteIndex] ? historial[pendingDeleteIndex].nro : "—");
+      var modal = new bootstrap.Modal(document.getElementById("modalEliminarHistorial"));
+      modal.show();
+    }
+  });
+
+  document.getElementById("btn-preview-reenviar").addEventListener("click", function () {
+    if (pendingPreviewIndex !== null) {
+      reenviarCotizacion(pendingPreviewIndex);
+    }
+  });
+
+  document.getElementById("modalPreview").addEventListener("hidden.bs.modal", function () {
+    pendingPreviewIndex = null;
   });
 
   document.getElementById("input-logo").addEventListener("change", function () {
@@ -596,6 +797,58 @@ function init() {
         showLogoPreview(dataUrl);
       };
       reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById("btn-login").addEventListener("click", function () {
+    var nombre = document.getElementById("input-login-nombre").value.trim();
+    var email = document.getElementById("input-login-email").value.trim();
+    var feedback = document.getElementById("login-feedback");
+    var inputEmail = document.getElementById("input-login-email");
+
+    if (!nombre) {
+      document.getElementById("input-login-nombre").focus();
+      return;
+    }
+
+    if (!emailAutorizado(email)) {
+      inputEmail.classList.add("is-invalid");
+      feedback.textContent = "Email no autorizado.";
+      return;
+    }
+
+    inputEmail.classList.remove("is-invalid");
+    encriptarUsuario(nombre, email).then(function () {
+      actualizarNavbar(nombre, email);
+      bootstrap.Modal.getInstance(document.getElementById("modalLogin")).hide();
+    });
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", cerrarSesion);
+
+  document.getElementById("modalLogin").addEventListener("shown.bs.modal", function () {
+    document.getElementById("input-login-nombre").focus();
+  });
+
+  document.getElementById("input-login-nombre").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("input-login-email").focus();
+  });
+
+  document.getElementById("input-login-email").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("btn-login").click();
+  });
+
+  document.getElementById("input-login-email").addEventListener("input", function () {
+    this.classList.remove("is-invalid");
+  });
+
+  desencriptarUsuario().then(function (usuario) {
+    if (usuario && usuario.email && emailAutorizado(usuario.email)) {
+      actualizarNavbar(usuario.nombre, usuario.email);
+    } else {
+      localStorage.removeItem(STORE_PREFIX + "email");
+      var modal = new bootstrap.Modal(document.getElementById("modalLogin"));
+      modal.show();
     }
   });
 }
