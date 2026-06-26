@@ -364,7 +364,7 @@ function capturarDatosCotizacion(nro) {
   return {
     nro: nro,
     fecha: document.getElementById("input-fecha").value,
-    validez: document.getElementById("input-validez").value,
+    validez: document.getElementById("input-validez").selectedOptions[0].textContent,
     moneda: obtenerMoneda(),
     emisor: {
       empresa: company_info.empresa,
@@ -599,6 +599,20 @@ function emailAutorizado(email) {
   return ALLOWED_EMAILS.indexOf(email) !== -1;
 }
 
+function actualizarVencimiento() {
+  var fecha = document.getElementById("input-fecha").value;
+  var dias = parseInt(document.getElementById("input-validez").value, 10);
+  if (fecha && dias > 0) {
+    var d = new Date(fecha);
+    d.setDate(d.getDate() + dias);
+    var opciones = { day: "numeric", month: "long", year: "numeric" };
+    document.getElementById("vencimiento-texto").textContent =
+      "V\u00e1lido hasta: " + d.toLocaleDateString("es-ES", opciones);
+  } else {
+    document.getElementById("vencimiento-texto").textContent = "";
+  }
+}
+
 function actualizarNavbar(nombre, email) {
   var el = document.getElementById("navbar-email");
   el.textContent = nombre + " <" + email + ">";
@@ -632,6 +646,10 @@ function init() {
   document.getElementById("header-cuit").textContent = company_info.cuit;
   document.getElementById("header-email").textContent = company_info.email;
   cambiarMoneda(obtenerMoneda());
+
+  actualizarVencimiento();
+  document.getElementById("input-fecha").addEventListener("change", actualizarVencimiento);
+  document.getElementById("input-validez").addEventListener("change", actualizarVencimiento);
 
   agregarItem(1, "", "");
 

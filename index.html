@@ -118,9 +118,19 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="input-validez" placeholder="Validez"
-                                    data-persist="metadatos-validez">
+                                <select class="form-select" id="input-validez" data-persist="metadatos-validez">
+                                    <option value="7">7 días</option>
+                                    <option value="10">10 días</option>
+                                    <option value="15" selected>15 días</option>
+                                    <option value="20">20 días</option>
+                                    <option value="30">30 días</option>
+                                    <option value="60">60 días</option>
+                                    <option value="90">90 días</option>
+                                </select>
                                 <label for="input-validez">Validez</label>
+                            </div>
+                            <div class="small text-muted mt-1 fst-italic" id="validez-info">
+                                <span id="vencimiento-texto"></span>
                             </div>
                         </div>
                     </div>
