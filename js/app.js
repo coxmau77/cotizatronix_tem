@@ -236,73 +236,7 @@ function obtenerItems() {
 }
 
 function poblarPlantilla() {
-  var logoFile = document.getElementById("input-logo").files[0];
-  if (logoFile) {
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      var dataUrl = e.target.result;
-      document.getElementById("render-logo").src = dataUrl;
-      localStorage.setItem(STORE_PREFIX + "logo", dataUrl);
-    };
-    reader.readAsDataURL(logoFile);
-  } else {
-    var savedLogo = localStorage.getItem(STORE_PREFIX + "logo");
-    document.getElementById("render-logo").src = savedLogo || LOGO_DEFAULT;
-  }
-
-  document.getElementById("render-empresa").textContent =
-    document.getElementById("input-empresa").value || "Empresa Emisora";
-  document.getElementById("render-cuit").textContent =
-    "CUIT: " + (document.getElementById("input-cuit").value || "00-00000000-0");
-  document.getElementById("render-email").textContent =
-    document.getElementById("input-email").value || "info@empresa.com.ar";
-
-  document.getElementById("render-cliente").textContent =
-    document.getElementById("input-cliente").value || "---";
-  document.getElementById("render-direccion").textContent =
-    document.getElementById("input-direccion").value || "---";
-
-  var fecha = document.getElementById("input-fecha").value;
-  if (fecha) {
-    var partes = fecha.split("-");
-    document.getElementById("render-fecha").textContent =
-      partes[2] + "/" + partes[1] + "/" + partes[0];
-  }
-
-  document.getElementById("render-validez").textContent =
-    document.getElementById("input-validez").value || "---";
-
-  var items = obtenerItems();
-  var tbody = document.getElementById("render-items-body");
-  tbody.innerHTML = "";
-
-  var subtotal = 0;
-  items.forEach(function (item) {
-    var tr = document.createElement("tr");
-    tr.innerHTML =
-      "<td>" +
-      item.cant +
-      "</td>" +
-      "<td>" +
-      item.desc +
-      "</td>" +
-      '<td class="money">' +
-      formatearMoneda(item.precio) +
-      "</td>" +
-      '<td class="money">' +
-      formatearMoneda(item.total) +
-      "</td>";
-    tbody.appendChild(tr);
-    subtotal += item.total;
-  });
-
-  var iva = subtotal * 0.21;
-  var total = subtotal + iva;
-
-  document.getElementById("render-subtotal").textContent =
-    formatearMoneda(subtotal);
-  document.getElementById("render-iva").textContent = formatearMoneda(iva);
-  document.getElementById("render-total").textContent = formatearMoneda(total);
+  poblarClon(capturarDatosCotizacion(null), document.getElementById("plantilla-a4"));
 }
 
 function generarPDF() {
@@ -319,15 +253,12 @@ function generarPDF() {
     if (nombreArchivo === null) nombreArchivo = sugerencia;
 
     var data = capturarDatosCotizacion(nro);
-
-    poblarPlantilla();
     guardarDatos();
-    document.getElementById("render-nro").textContent = nro;
 
-    var elementoOriginal = document.getElementById("plantilla-a4");
-
-    var clon = elementoOriginal.cloneNode(true);
+    var template = document.getElementById("plantilla-a4");
+    var clon = template.cloneNode(true);
     clon.id = "plantilla-clon";
+    poblarClon(data, clon);
 
     var contenedorTemporal = document.createElement("div");
     contenedorTemporal.style.position = "absolute";
@@ -382,6 +313,42 @@ function escapeHtml(str) {
   var d = document.createElement("div");
   d.appendChild(document.createTextNode(str));
   return d.innerHTML;
+}
+
+function poblarClon(data, clon) {
+  clon.querySelector("#render-logo").src = data.emisor.logo || LOGO_DEFAULT;
+  clon.querySelector("#render-logo").style.display = "inline";
+  clon.querySelector("#render-empresa").textContent = data.emisor.empresa || "Empresa Emisora";
+  clon.querySelector("#render-cuit").textContent = "CUIT: " + (data.emisor.cuit || "00-00000000-0");
+  clon.querySelector("#render-email").textContent = data.emisor.email || "info@empresa.com.ar";
+
+  clon.querySelector("#render-cliente").textContent = data.cliente.nombre || "\u2014";
+  clon.querySelector("#render-direccion").textContent = data.cliente.direccion || "\u2014";
+  clon.querySelector("#render-nro").textContent = data.nro;
+
+  var fecha = data.fecha;
+  if (fecha) {
+    var partes = fecha.split("-");
+    if (partes.length === 3) fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
+  }
+  clon.querySelector("#render-fecha").textContent = fecha || "--/--/----";
+  clon.querySelector("#render-validez").textContent = data.validez || "\u2014";
+
+  var tbody = clon.querySelector("#render-items-body");
+  tbody.innerHTML = "";
+  data.items.forEach(function (item) {
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + item.cant + "</td>" +
+      "<td>" + escapeHtml(item.desc) + "</td>" +
+      '<td class="money">' + formatearMoneda(item.precio, data.moneda) + "</td>" +
+      '<td class="money">' + formatearMoneda(item.total, data.moneda) + "</td>";
+    tbody.appendChild(tr);
+  });
+
+  clon.querySelector("#render-subtotal").textContent = formatearMoneda(data.subtotal, data.moneda);
+  clon.querySelector("#render-iva").textContent = formatearMoneda(data.iva, data.moneda);
+  clon.querySelector("#render-total").textContent = formatearMoneda(data.total, data.moneda);
 }
 
 function capturarDatosCotizacion(nro) {
@@ -496,41 +463,7 @@ function renderPreview(index) {
   var template = document.getElementById("plantilla-a4");
   var clone = template.cloneNode(true);
   clone.id = "preview-clon";
-
-  clone.querySelector("#render-logo").src = data.emisor.logo || LOGO_DEFAULT;
-  clone.querySelector("#render-logo").style.display = "inline";
-
-  clone.querySelector("#render-empresa").textContent = data.emisor.empresa || "Empresa Emisora";
-  clone.querySelector("#render-cuit").textContent = "CUIT: " + (data.emisor.cuit || "00-00000000-0");
-  clone.querySelector("#render-email").textContent = data.emisor.email || "info@empresa.com.ar";
-
-  clone.querySelector("#render-cliente").textContent = data.cliente.nombre || "\u2014";
-  clone.querySelector("#render-direccion").textContent = data.cliente.direccion || "\u2014";
-  clone.querySelector("#render-nro").textContent = data.nro;
-
-  var fecha = data.fecha;
-  if (fecha) {
-    var partes = fecha.split("-");
-    if (partes.length === 3) fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
-  }
-  clone.querySelector("#render-fecha").textContent = fecha || "--/--/----";
-  clone.querySelector("#render-validez").textContent = data.validez || "\u2014";
-
-  var tbody = clone.querySelector("#render-items-body");
-  tbody.innerHTML = "";
-  data.items.forEach(function (item) {
-    var tr = document.createElement("tr");
-    tr.innerHTML =
-      "<td>" + item.cant + "</td>" +
-      "<td>" + escapeHtml(item.desc) + "</td>" +
-      '<td class="money">' + formatearMoneda(item.precio, data.moneda) + "</td>" +
-      '<td class="money">' + formatearMoneda(item.total, data.moneda) + "</td>";
-    tbody.appendChild(tr);
-  });
-
-  clone.querySelector("#render-subtotal").textContent = formatearMoneda(data.subtotal, data.moneda);
-  clone.querySelector("#render-iva").textContent = formatearMoneda(data.iva, data.moneda);
-  clone.querySelector("#render-total").textContent = formatearMoneda(data.total, data.moneda);
+  poblarClon(data, clone);
 
   var container = document.getElementById("preview-container");
   container.innerHTML = "";
@@ -538,6 +471,55 @@ function renderPreview(index) {
 
   var modal = new bootstrap.Modal(document.getElementById("modalPreview"));
   modal.show();
+}
+
+function descargarPDFHistorial(index) {
+  var historial = obtenerHistorial();
+  var data = historial[index];
+  if (!data) return;
+
+  var nombreArchivo = "Cotizacion_" + data.nro + ".pdf";
+
+  var template = document.getElementById("plantilla-a4");
+  var clon = template.cloneNode(true);
+  clon.id = "descarga-clon";
+  poblarClon(data, clon);
+
+  var contenedorTemporal = document.createElement("div");
+  contenedorTemporal.style.position = "absolute";
+  contenedorTemporal.style.top = "0px";
+  contenedorTemporal.style.left = "0px";
+  contenedorTemporal.style.width = "210mm";
+  contenedorTemporal.style.background = "white";
+  contenedorTemporal.style.zIndex = "9999";
+  contenedorTemporal.style.margin = "0";
+  contenedorTemporal.style.padding = "0";
+
+  contenedorTemporal.appendChild(clon);
+  document.body.appendChild(contenedorTemporal);
+
+  window.scrollTo(0, 0);
+
+  var opt = {
+    margin: 0,
+    filename: nombreArchivo,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      scrollX: 0,
+      scrollY: 0,
+    },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+  };
+
+  html2pdf()
+    .set(opt)
+    .from(clon)
+    .save()
+    .then(function () {
+      document.body.removeChild(contenedorTemporal);
+    });
 }
 
 function reenviarCotizacion(index) {
@@ -774,6 +756,12 @@ function init() {
       document.getElementById("modal-eliminar-nro").textContent = "N\u00ba " + (historial[pendingDeleteIndex] ? historial[pendingDeleteIndex].nro : "—");
       var modal = new bootstrap.Modal(document.getElementById("modalEliminarHistorial"));
       modal.show();
+    }
+  });
+
+  document.getElementById("btn_download").addEventListener("click", function () {
+    if (pendingPreviewIndex !== null) {
+      descargarPDFHistorial(pendingPreviewIndex);
     }
   });
 
