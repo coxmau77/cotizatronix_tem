@@ -2,12 +2,12 @@ var STORE_PREFIX = "cotizacion-";
 var LOGO_DEFAULT = "img/icon-color.svg";
 var ALLOWED_EMAILS = "__ALLOWED_EMAILS__".split(",");
 if (ALLOWED_EMAILS[0] === "__ALLOWED_EMAILS__") {
-  ALLOWED_EMAILS = ["correo@email.com", "coxmau77@gmail.com"];
+  ALLOWED_EMAILS = ["elevatronix@gmail.com"];
 }
 var company_info = {
   empresa: "Mi Empresa S.A.",
   cuit: "30-12345678-0",
-  email: "info@miempresa.com.ar"
+  email: "info@miempresa.com.ar",
 };
 var pendingReset = null;
 var pendingDeleteIndex = null;
@@ -96,17 +96,19 @@ function actualizarTodosLosPreviews() {
 
 function actualizarTotalesItems() {
   var items = obtenerItems();
+  var moneda = obtenerMoneda();
   var subtotal = 0;
   items.forEach(function (i) {
     subtotal += i.total;
   });
-  var iva = subtotal * 0.21;
+  var iva = moneda === "ARS" ? subtotal * 0.21 : 0;
   var total = subtotal + iva;
 
   document.getElementById("items-subtotal").textContent =
     formatearMoneda(subtotal);
   document.getElementById("items-iva").textContent = formatearMoneda(iva);
   document.getElementById("items-total").textContent = formatearMoneda(total);
+  document.getElementById("iva-row-form").classList.toggle("d-none", moneda !== "ARS");
 }
 
 function cambiarMoneda(moneda) {
@@ -238,13 +240,18 @@ function obtenerItems() {
 }
 
 function poblarPlantilla() {
-  poblarClon(capturarDatosCotizacion(null), document.getElementById("plantilla-a4"));
+  poblarClon(
+    capturarDatosCotizacion(null),
+    document.getElementById("plantilla-a4"),
+  );
 }
 
 function generarPDF() {
-  desencriptarUsuario().then(function(usuario) {
+  desencriptarUsuario().then(function (usuario) {
     if (!usuario || !emailAutorizado(usuario.email)) {
-      var modal = new bootstrap.Modal(document.getElementById("modalEmailDenied"));
+      var modal = new bootstrap.Modal(
+        document.getElementById("modalEmailDenied"),
+      );
       modal.show();
       return;
     }
@@ -321,18 +328,24 @@ function escapeHtml(str) {
 function poblarClon(data, clon) {
   clon.querySelector("#render-logo").src = data.emisor.logo || LOGO_DEFAULT;
   clon.querySelector("#render-logo").style.display = "inline";
-  clon.querySelector("#render-empresa").textContent = data.emisor.empresa || "Empresa Emisora";
-  clon.querySelector("#render-cuit").textContent = "CUIT: " + (data.emisor.cuit || "00-00000000-0");
-  clon.querySelector("#render-email").textContent = data.emisor.email || "info@empresa.com.ar";
+  clon.querySelector("#render-empresa").textContent =
+    data.emisor.empresa || "Empresa Emisora";
+  clon.querySelector("#render-cuit").textContent =
+    "CUIT: " + (data.emisor.cuit || "00-00000000-0");
+  clon.querySelector("#render-email").textContent =
+    data.emisor.email || "info@empresa.com.ar";
 
-  clon.querySelector("#render-cliente").textContent = data.cliente.nombre || "\u2014";
-  clon.querySelector("#render-direccion").textContent = data.cliente.direccion || "\u2014";
+  clon.querySelector("#render-cliente").textContent =
+    data.cliente.nombre || "\u2014";
+  clon.querySelector("#render-direccion").textContent =
+    data.cliente.direccion || "\u2014";
   clon.querySelector("#render-nro").textContent = data.nro;
 
   var fecha = data.fecha;
   if (fecha) {
     var partes = fecha.split("-");
-    if (partes.length === 3) fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
+    if (partes.length === 3)
+      fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
   }
   clon.querySelector("#render-fecha").textContent = fecha || "--/--/----";
   clon.querySelector("#render-validez").textContent = data.validez || "\u2014";
@@ -342,44 +355,69 @@ function poblarClon(data, clon) {
   data.items.forEach(function (item) {
     var tr = document.createElement("tr");
     tr.innerHTML =
-      "<td>" + item.cant + "</td>" +
-      "<td>" + escapeHtml(item.desc) + "</td>" +
-      '<td class="money">' + formatearMoneda(item.precio, data.moneda) + "</td>" +
-      '<td class="money">' + formatearMoneda(item.total, data.moneda) + "</td>";
+      "<td>" +
+      item.cant +
+      "</td>" +
+      "<td>" +
+      escapeHtml(item.desc) +
+      "</td>" +
+      '<td class="money">' +
+      formatearMoneda(item.precio, data.moneda) +
+      "</td>" +
+      '<td class="money">' +
+      formatearMoneda(item.total, data.moneda) +
+      "</td>";
     tbody.appendChild(tr);
   });
 
-  clon.querySelector("#render-subtotal").textContent = formatearMoneda(data.subtotal, data.moneda);
-  clon.querySelector("#render-iva").textContent = formatearMoneda(data.iva, data.moneda);
-  clon.querySelector("#render-total").textContent = formatearMoneda(data.total, data.moneda);
+  clon.querySelector("#render-subtotal").textContent = formatearMoneda(
+    data.subtotal,
+    data.moneda,
+  );
+  clon.querySelector("#render-iva").textContent = formatearMoneda(
+    data.iva,
+    data.moneda,
+  );
+  clon.querySelector("#render-total").textContent = formatearMoneda(
+    data.total,
+    data.moneda,
+  );
+  var ivaRow = clon.querySelector("#iva-row-pdf");
+  if (ivaRow) {
+    ivaRow.classList.toggle("d-none", data.moneda !== "ARS");
+  }
 }
 
 function capturarDatosCotizacion(nro) {
   var items = obtenerItems();
+  var moneda = obtenerMoneda();
   var subtotal = 0;
-  items.forEach(function (i) { subtotal += i.total; });
-  var iva = subtotal * 0.21;
+  items.forEach(function (i) {
+    subtotal += i.total;
+  });
+  var iva = moneda === "ARS" ? subtotal * 0.21 : 0;
   var total = subtotal + iva;
 
   return {
     nro: nro,
     fecha: document.getElementById("input-fecha").value,
-    validez: document.getElementById("input-validez").selectedOptions[0].textContent,
-    moneda: obtenerMoneda(),
+    validez:
+      document.getElementById("input-validez").selectedOptions[0].textContent,
+    moneda: moneda,
     emisor: {
       empresa: company_info.empresa,
       cuit: company_info.cuit,
       email: company_info.email,
-      logo: localStorage.getItem(STORE_PREFIX + "logo") || LOGO_DEFAULT
+      logo: localStorage.getItem(STORE_PREFIX + "logo") || LOGO_DEFAULT,
     },
     cliente: {
       nombre: document.getElementById("input-cliente").value,
-      direccion: document.getElementById("input-direccion").value
+      direccion: document.getElementById("input-direccion").value,
     },
     items: items,
     subtotal: subtotal,
     iva: iva,
-    total: total
+    total: total,
   };
 }
 
@@ -399,11 +437,16 @@ function eliminarDelHistorial(index) {
 
 function guardarHistorial(data) {
   try {
-    var historial = JSON.parse(localStorage.getItem(STORE_PREFIX + "historial") || "[]");
+    var historial = JSON.parse(
+      localStorage.getItem(STORE_PREFIX + "historial") || "[]",
+    );
     historial.unshift(data);
     localStorage.setItem(STORE_PREFIX + "historial", JSON.stringify(historial));
   } catch (e) {
-    if (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED") {
+    if (
+      e.name === "QuotaExceededError" ||
+      e.name === "NS_ERROR_DOM_QUOTA_REACHED"
+    ) {
       mostrarAlmacenamientoLleno();
     }
   }
@@ -431,33 +474,52 @@ function renderHistorial() {
     var fecha = item.fecha;
     if (fecha) {
       var partes = fecha.split("-");
-      if (partes.length === 3) fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
+      if (partes.length === 3)
+        fecha = partes[2] + "/" + partes[1] + "/" + partes[0];
     }
-    var monedaBadge = item.moneda === "USD"
-      ? '<span class="badge bg-success me-1">USD</span>'
-      : '<span class="badge bg-info text-dark me-1">ARS</span>';
+    var monedaBadge =
+      item.moneda === "USD"
+        ? '<span class="badge bg-success me-1">USD</span>'
+        : '<span class="badge bg-info text-dark me-1">ARS</span>';
     var titulo = item.filename
       ? escapeHtml(item.filename)
       : "Cotizaci\u00f3n N\u00ba " + item.nro;
     html +=
       '<div class="list-group-item historial-item">' +
       '<div class="d-flex justify-content-between align-items-start">' +
-      '<div class="fw-semibold small text-truncate me-2">' + titulo + '</div>' +
-      '<div class="text-nowrap fw-bold small">' + formatearMoneda(item.total, item.moneda) + '</div>' +
-      '</div>' +
+      '<div class="fw-semibold small text-truncate me-2">' +
+      titulo +
+      "</div>" +
+      '<div class="text-nowrap fw-bold small">' +
+      formatearMoneda(item.total, item.moneda) +
+      "</div>" +
+      "</div>" +
       '<div class="d-flex justify-content-between align-items-center mt-1">' +
       '<div class="small">' +
       monedaBadge +
-      'N\u00ba ' + item.nro + ' \u00b7 ' + escapeHtml(item.cliente.nombre || "\u2014") +
-      '</div>' +
-      '<small class="text-muted text-nowrap ms-2">' + fecha + '</small>' +
-      '</div>' +
-      (item.validez ? '<div class="small text-muted mt-1">Validez: ' + escapeHtml(item.validez) + '</div>' : '') +
+      "N\u00ba " +
+      item.nro +
+      " \u00b7 " +
+      escapeHtml(item.cliente.nombre || "\u2014") +
+      "</div>" +
+      '<small class="text-muted text-nowrap ms-2">' +
+      fecha +
+      "</small>" +
+      "</div>" +
+      (item.validez
+        ? '<div class="small text-muted mt-1">Validez: ' +
+          escapeHtml(item.validez) +
+          "</div>"
+        : "") +
       '<div class="d-flex gap-2 mt-2">' +
-      '<button class="btn btn-sm btn-outline-primary btn-ver-historial" data-index="' + index + '">Ver</button>' +
-      '<button class="btn btn-sm btn-outline-danger btn-eliminar-historial" data-index="' + index + '" title="Eliminar"><i class="bi bi-trash"></i></button>' +
-      '</div>' +
-      '</div>';
+      '<button class="btn btn-sm btn-outline-primary btn-ver-historial" data-index="' +
+      index +
+      '">Ver</button>' +
+      '<button class="btn btn-sm btn-outline-danger btn-eliminar-historial" data-index="' +
+      index +
+      '" title="Eliminar"><i class="bi bi-trash"></i></button>' +
+      "</div>" +
+      "</div>";
   });
   html += "</div>";
   body.innerHTML = html;
@@ -535,7 +597,9 @@ function descargarPDFHistorial(index) {
 
 function abrirOffcanvas(id) {
   if (typeof bootstrap === "undefined") {
-    alert("Error: Bootstrap no se pudo cargar. Verifica tu conexión a internet y recarga la página.");
+    alert(
+      "Error: Bootstrap no se pudo cargar. Verifica tu conexión a internet y recarga la página.",
+    );
     return;
   }
   var el = document.getElementById(id);
@@ -546,33 +610,63 @@ function abrirOffcanvas(id) {
 }
 
 function base64ToBuf(b64) {
-  var bin = atob(b64), buf = new Uint8Array(bin.length);
+  var bin = atob(b64),
+    buf = new Uint8Array(bin.length);
   for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
   return buf.buffer;
 }
 
 function bufToBase64(buf) {
-  var bytes = new Uint8Array(buf), bin = "";
+  var bytes = new Uint8Array(buf),
+    bin = "";
   for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
   return btoa(bin);
 }
 
 function obtenerClaveCrypto() {
   var enc = new TextEncoder();
-  return crypto.subtle.importKey("raw", enc.encode("cotizatronix-seed-2024"), { name: "PBKDF2" }, false, ["deriveKey"]).then(function(baseKey) {
-    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("cotizatronix-salt"), iterations: 100000, hash: "SHA-256" }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-  });
+  return crypto.subtle
+    .importKey(
+      "raw",
+      enc.encode("cotizatronix-seed-2024"),
+      { name: "PBKDF2" },
+      false,
+      ["deriveKey"],
+    )
+    .then(function (baseKey) {
+      return crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: enc.encode("cotizatronix-salt"),
+          iterations: 100000,
+          hash: "SHA-256",
+        },
+        baseKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"],
+      );
+    });
 }
 
 function encriptarUsuario(nombre, email) {
   var data = JSON.stringify({ nombre: nombre, email: email });
   var enc = new TextEncoder();
   var iv = crypto.getRandomValues(new Uint8Array(12));
-  return obtenerClaveCrypto().then(function(key) {
-    return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, enc.encode(data));
-  }).then(function(ct) {
-    sessionStorage.setItem(STORE_PREFIX + "email", JSON.stringify({ iv: bufToBase64(iv), data: bufToBase64(ct) }));
-  });
+  return obtenerClaveCrypto()
+    .then(function (key) {
+      return crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        enc.encode(data),
+      );
+    })
+    .then(function (ct) {
+      sessionStorage.setItem(
+        STORE_PREFIX + "email",
+        JSON.stringify({ iv: bufToBase64(iv), data: bufToBase64(ct) }),
+      );
+    });
 }
 
 function desencriptarUsuario() {
@@ -587,12 +681,23 @@ function desencriptarUsuario() {
   if (!stored) return Promise.resolve(null);
   try {
     var obj = JSON.parse(stored);
-    return obtenerClaveCrypto().then(function(key) {
-      return crypto.subtle.decrypt({ name: "AES-GCM", iv: base64ToBuf(obj.iv) }, key, base64ToBuf(obj.data));
-    }).then(function(dec) {
-      return JSON.parse(new TextDecoder().decode(dec));
-    }).catch(function() { return null; });
-  } catch (e) { return Promise.resolve(null); }
+    return obtenerClaveCrypto()
+      .then(function (key) {
+        return crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: base64ToBuf(obj.iv) },
+          key,
+          base64ToBuf(obj.data),
+        );
+      })
+      .then(function (dec) {
+        return JSON.parse(new TextDecoder().decode(dec));
+      })
+      .catch(function () {
+        return null;
+      });
+  } catch (e) {
+    return Promise.resolve(null);
+  }
 }
 
 function emailAutorizado(email) {
@@ -625,7 +730,7 @@ function cerrarSesion() {
   document.getElementById("navbar-user-info").style.display = "none";
   document.getElementById("user-menu").style.display = "none";
   var dropdown = bootstrap.Dropdown.getInstance(
-    document.querySelector("#user-menu .dropdown-toggle")
+    document.querySelector("#user-menu .dropdown-toggle"),
   );
   if (dropdown) dropdown.hide();
   var modal = new bootstrap.Modal(document.getElementById("modalLogin"));
@@ -648,7 +753,8 @@ function aplicarTema(tema) {
 }
 
 function toggleTema() {
-  var actual = document.documentElement.getAttribute("data-bs-theme") || "light";
+  var actual =
+    document.documentElement.getAttribute("data-bs-theme") || "light";
   var nuevo = actual === "dark" ? "light" : "dark";
   localStorage.setItem(THEME_KEY, nuevo);
   aplicarTema(nuevo);
@@ -681,8 +787,12 @@ function init() {
   cambiarMoneda(obtenerMoneda());
 
   actualizarVencimiento();
-  document.getElementById("input-fecha").addEventListener("change", actualizarVencimiento);
-  document.getElementById("input-validez").addEventListener("change", actualizarVencimiento);
+  document
+    .getElementById("input-fecha")
+    .addEventListener("change", actualizarVencimiento);
+  document
+    .getElementById("input-validez")
+    .addEventListener("change", actualizarVencimiento);
 
   agregarItem(1, "", "");
 
@@ -714,24 +824,34 @@ function init() {
     });
   });
 
-  document.getElementById("offcanvasHistorial").addEventListener("show.bs.offcanvas", renderHistorial);
+  document
+    .getElementById("offcanvasHistorial")
+    .addEventListener("show.bs.offcanvas", renderHistorial);
 
-  document.getElementById("offcanvasHistorial").addEventListener("click", function (e) {
-    var btn = e.target.closest(".btn-ver-historial");
-    if (btn) {
-      var index = parseInt(btn.getAttribute("data-index"), 10);
-      renderPreview(index);
-      return;
-    }
-    var delBtn = e.target.closest(".btn-eliminar-historial");
-    if (delBtn) {
-      var historial = obtenerHistorial();
-      pendingDeleteIndex = parseInt(delBtn.getAttribute("data-index"), 10);
-      document.getElementById("modal-eliminar-nro").textContent = "N\u00ba " + (historial[pendingDeleteIndex] ? historial[pendingDeleteIndex].nro : "—");
-      var modal = new bootstrap.Modal(document.getElementById("modalEliminarHistorial"));
-      modal.show();
-    }
-  });
+  document
+    .getElementById("offcanvasHistorial")
+    .addEventListener("click", function (e) {
+      var btn = e.target.closest(".btn-ver-historial");
+      if (btn) {
+        var index = parseInt(btn.getAttribute("data-index"), 10);
+        renderPreview(index);
+        return;
+      }
+      var delBtn = e.target.closest(".btn-eliminar-historial");
+      if (delBtn) {
+        var historial = obtenerHistorial();
+        pendingDeleteIndex = parseInt(delBtn.getAttribute("data-index"), 10);
+        document.getElementById("modal-eliminar-nro").textContent =
+          "N\u00ba " +
+          (historial[pendingDeleteIndex]
+            ? historial[pendingDeleteIndex].nro
+            : "—");
+        var modal = new bootstrap.Modal(
+          document.getElementById("modalEliminarHistorial"),
+        );
+        modal.show();
+      }
+    });
 
   document.querySelectorAll("[data-reset]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -750,64 +870,94 @@ function init() {
     });
   });
 
-  document.getElementById("btn-confirmar-reset").addEventListener("click", function () {
-    if (pendingReset) {
-      resetSeccion(pendingReset);
+  document
+    .getElementById("btn-confirmar-reset")
+    .addEventListener("click", function () {
+      if (pendingReset) {
+        resetSeccion(pendingReset);
+        pendingReset = null;
+      }
+      bootstrap.Modal.getInstance(document.getElementById("modalReset")).hide();
+    });
+
+  document
+    .getElementById("modalReset")
+    .addEventListener("hidden.bs.modal", function () {
       pendingReset = null;
-    }
-    bootstrap.Modal.getInstance(document.getElementById("modalReset")).hide();
-  });
+    });
 
-  document.getElementById("modalReset").addEventListener("hidden.bs.modal", function () {
-    pendingReset = null;
-  });
+  document
+    .getElementById("modalPDF")
+    .addEventListener("hidden.bs.modal", function () {
+      var offcanvasEl = document.getElementById("offcanvasForm");
+      var offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+      if (offcanvas) {
+        offcanvas.hide();
+      }
+    });
 
-  document.getElementById("modalPDF").addEventListener("hidden.bs.modal", function () {
-    var offcanvasEl = document.getElementById("offcanvasForm");
-    var offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-    if (offcanvas) {
-      offcanvas.hide();
-    }
-  });
+  document
+    .getElementById("btn-ir-historial")
+    .addEventListener("click", function () {
+      bootstrap.Modal.getInstance(
+        document.getElementById("modalStorageFull"),
+      ).hide();
+      abrirOffcanvas("offcanvasHistorial");
+    });
 
-  document.getElementById("btn-ir-historial").addEventListener("click", function () {
-    bootstrap.Modal.getInstance(document.getElementById("modalStorageFull")).hide();
-    abrirOffcanvas("offcanvasHistorial");
-  });
+  document
+    .getElementById("btn-confirmar-eliminar")
+    .addEventListener("click", function () {
+      if (pendingDeleteIndex !== null) {
+        eliminarDelHistorial(pendingDeleteIndex);
+        pendingDeleteIndex = null;
+      }
+      bootstrap.Modal.getInstance(
+        document.getElementById("modalEliminarHistorial"),
+      ).hide();
+      var previewModal = bootstrap.Modal.getInstance(
+        document.getElementById("modalPreview"),
+      );
+      if (previewModal) previewModal.hide();
+    });
 
-  document.getElementById("btn-confirmar-eliminar").addEventListener("click", function () {
-    if (pendingDeleteIndex !== null) {
-      eliminarDelHistorial(pendingDeleteIndex);
+  document
+    .getElementById("modalEliminarHistorial")
+    .addEventListener("hidden.bs.modal", function () {
       pendingDeleteIndex = null;
-    }
-    bootstrap.Modal.getInstance(document.getElementById("modalEliminarHistorial")).hide();
-    var previewModal = bootstrap.Modal.getInstance(document.getElementById("modalPreview"));
-    if (previewModal) previewModal.hide();
-  });
+    });
 
-  document.getElementById("modalEliminarHistorial").addEventListener("hidden.bs.modal", function () {
-    pendingDeleteIndex = null;
-  });
+  document
+    .getElementById("btn-preview-eliminar")
+    .addEventListener("click", function () {
+      if (pendingPreviewIndex !== null) {
+        pendingDeleteIndex = pendingPreviewIndex;
+        var historial = obtenerHistorial();
+        document.getElementById("modal-eliminar-nro").textContent =
+          "N\u00ba " +
+          (historial[pendingDeleteIndex]
+            ? historial[pendingDeleteIndex].nro
+            : "—");
+        var modal = new bootstrap.Modal(
+          document.getElementById("modalEliminarHistorial"),
+        );
+        modal.show();
+      }
+    });
 
-  document.getElementById("btn-preview-eliminar").addEventListener("click", function () {
-    if (pendingPreviewIndex !== null) {
-      pendingDeleteIndex = pendingPreviewIndex;
-      var historial = obtenerHistorial();
-      document.getElementById("modal-eliminar-nro").textContent = "N\u00ba " + (historial[pendingDeleteIndex] ? historial[pendingDeleteIndex].nro : "—");
-      var modal = new bootstrap.Modal(document.getElementById("modalEliminarHistorial"));
-      modal.show();
-    }
-  });
+  document
+    .getElementById("btn_download")
+    .addEventListener("click", function () {
+      if (pendingPreviewIndex !== null) {
+        descargarPDFHistorial(pendingPreviewIndex);
+      }
+    });
 
-  document.getElementById("btn_download").addEventListener("click", function () {
-    if (pendingPreviewIndex !== null) {
-      descargarPDFHistorial(pendingPreviewIndex);
-    }
-  });
-
-  document.getElementById("modalPreview").addEventListener("hidden.bs.modal", function () {
-    pendingPreviewIndex = null;
-  });
+  document
+    .getElementById("modalPreview")
+    .addEventListener("hidden.bs.modal", function () {
+      pendingPreviewIndex = null;
+    });
 
   document.getElementById("btn-login").addEventListener("click", function () {
     var nombre = document.getElementById("input-login-nombre").value.trim();
@@ -844,27 +994,40 @@ function init() {
   });
 
   document.getElementById("btn-logout").addEventListener("click", cerrarSesion);
-  document.getElementById("btn-toggle-theme").addEventListener("click", toggleTema);
+  document
+    .getElementById("btn-toggle-theme")
+    .addEventListener("click", toggleTema);
 
-  document.getElementById("modalLogin").addEventListener("shown.bs.modal", function () {
-    document.getElementById("input-login-nombre").focus();
-  });
+  document
+    .getElementById("modalLogin")
+    .addEventListener("shown.bs.modal", function () {
+      document.getElementById("input-login-nombre").focus();
+    });
 
-  document.getElementById("input-login-nombre").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") document.getElementById("input-login-email").focus();
-  });
+  document
+    .getElementById("input-login-nombre")
+    .addEventListener("keydown", function (e) {
+      if (e.key === "Enter")
+        document.getElementById("input-login-email").focus();
+    });
 
-  document.getElementById("input-login-email").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") document.getElementById("btn-login").click();
-  });
+  document
+    .getElementById("input-login-email")
+    .addEventListener("keydown", function (e) {
+      if (e.key === "Enter") document.getElementById("btn-login").click();
+    });
 
-  document.getElementById("input-login-email").addEventListener("input", function () {
-    this.classList.remove("is-invalid");
-  });
+  document
+    .getElementById("input-login-email")
+    .addEventListener("input", function () {
+      this.classList.remove("is-invalid");
+    });
 
-  document.getElementById("input-login-nombre").addEventListener("input", function () {
-    this.classList.remove("is-invalid");
-  });
+  document
+    .getElementById("input-login-nombre")
+    .addEventListener("input", function () {
+      this.classList.remove("is-invalid");
+    });
 
   desencriptarUsuario().then(function (usuario) {
     if (usuario && usuario.email && emailAutorizado(usuario.email)) {
