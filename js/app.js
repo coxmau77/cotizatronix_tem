@@ -779,20 +779,30 @@ function init() {
   document.getElementById("btn-login").addEventListener("click", function () {
     var nombre = document.getElementById("input-login-nombre").value.trim();
     var email = document.getElementById("input-login-email").value.trim();
-    var feedback = document.getElementById("login-feedback");
+    var inputNombre = document.getElementById("input-login-nombre");
     var inputEmail = document.getElementById("input-login-email");
+    var feedbackNombre = document.getElementById("login-feedback-nombre");
+    var feedbackEmail = document.getElementById("login-feedback");
 
     if (!nombre) {
-      document.getElementById("input-login-nombre").focus();
+      inputNombre.classList.add("is-invalid");
+      feedbackNombre.textContent = "Ingresá tu nombre.";
+      return;
+    }
+
+    if (!email) {
+      inputEmail.classList.add("is-invalid");
+      feedbackEmail.textContent = "Ingresá tu email.";
       return;
     }
 
     if (!emailAutorizado(email)) {
       inputEmail.classList.add("is-invalid");
-      feedback.textContent = "Email no autorizado.";
+      feedbackEmail.textContent = "Email no autorizado.";
       return;
     }
 
+    inputNombre.classList.remove("is-invalid");
     inputEmail.classList.remove("is-invalid");
     encriptarUsuario(nombre, email).then(function () {
       actualizarNavbar(nombre, email);
@@ -815,6 +825,10 @@ function init() {
   });
 
   document.getElementById("input-login-email").addEventListener("input", function () {
+    this.classList.remove("is-invalid");
+  });
+
+  document.getElementById("input-login-nombre").addEventListener("input", function () {
     this.classList.remove("is-invalid");
   });
 
