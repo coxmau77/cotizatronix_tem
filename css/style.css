@@ -189,6 +189,11 @@ body {
   background: #f4f7f6;
 }
 
+/* --- Navbar user menu --- */
+#user-menu .dropdown-toggle {
+  color: #fff;
+}
+
 /* --- Navbar email --- */
 #navbar-email {
   opacity: 0.85;
@@ -205,4 +210,70 @@ body {
 
 #offcanvasForm {
   width: 450px !important;
+}
+
+/* --- Dark Mode --- */
+[data-bs-theme="dark"] body {
+  background-color: #1a1a2e;
+}
+
+[data-bs-theme="dark"] #view-home {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+[data-bs-theme="dark"] .text-brand {
+  color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] #modalPreview .modal-body {
+  background: #1a1a2e;
+}
+
+[data-bs-theme="dark"] .offcanvas {
+  background-color: #1e1e36;
+  color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .offcanvas .form-label,
+[data-bs-theme="dark"] .offcanvas .form-control,
+[data-bs-theme="dark"] .offcanvas .form-select {
+  background-color: #2a2a45;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .offcanvas .form-control::placeholder {
+  color: #888;
+}
+
+[data-bs-theme="dark"] .offcanvas .form-check-input {
+  background-color: #2a2a45;
+  border-color: #555;
+}
+
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .list-group-item {
+  background-color: #1e1e36;
+  border-color: #333;
+  color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+  background-color: #2c2c44;
+  border-color: #444;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+  color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+  background-color: #3a3a55;
+  color: #fff;
+}
+
+[data-bs-theme="dark"] .modal-content {
+  background-color: #1e1e36;
+  color: #e0e0e0;
+  border-color: #444;
 }

@@ -2,7 +2,7 @@ var STORE_PREFIX = "cotizacion-";
 var LOGO_DEFAULT = "img/icon-color.svg";
 var ALLOWED_EMAILS = "__ALLOWED_EMAILS__".split(",");
 if (ALLOWED_EMAILS[0] === "__ALLOWED_EMAILS__") {
-  ALLOWED_EMAILS = ["correo@email.com", "mi-correo@correo.com"];
+  ALLOWED_EMAILS = ["correo@email.com", "coxmau77@gmail.com"];
 }
 var company_info = {
   empresa: "Mi Empresa S.A.",
@@ -617,18 +617,51 @@ function actualizarNavbar(nombre, email) {
   var el = document.getElementById("navbar-email");
   el.textContent = nombre + " <" + email + ">";
   el.style.display = "inline";
-  document.getElementById("btn-logout").style.display = "inline-block";
+  document.getElementById("user-menu").style.display = "inline-block";
 }
 
 function cerrarSesion() {
   sessionStorage.removeItem(STORE_PREFIX + "email");
   document.getElementById("navbar-email").style.display = "none";
-  document.getElementById("btn-logout").style.display = "none";
+  document.getElementById("user-menu").style.display = "none";
+  var dropdown = bootstrap.Dropdown.getInstance(
+    document.querySelector("#user-menu .dropdown-toggle")
+  );
+  if (dropdown) dropdown.hide();
   var modal = new bootstrap.Modal(document.getElementById("modalLogin"));
   modal.show();
 }
 
+var THEME_KEY = "cotizatronix-theme";
+
+function aplicarTema(tema) {
+  document.documentElement.setAttribute("data-bs-theme", tema);
+  var label = document.getElementById("theme-label");
+  var icon = document.querySelector("#btn-toggle-theme i");
+  if (tema === "dark") {
+    label.textContent = "Modo claro";
+    icon.className = "bi bi-sun-fill me-2";
+  } else {
+    label.textContent = "Modo oscuro";
+    icon.className = "bi bi-moon-fill me-2";
+  }
+}
+
+function toggleTema() {
+  var actual = document.documentElement.getAttribute("data-bs-theme") || "light";
+  var nuevo = actual === "dark" ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, nuevo);
+  aplicarTema(nuevo);
+}
+
+function cargarTema() {
+  var guardado = localStorage.getItem(THEME_KEY);
+  aplicarTema(guardado || "light");
+}
+
 function init() {
+  cargarTema();
+
   if (typeof bootstrap === "undefined") {
     document.getElementById("view-home").innerHTML =
       '<div class="alert alert-danger mx-3" role="alert">' +
@@ -811,6 +844,7 @@ function init() {
   });
 
   document.getElementById("btn-logout").addEventListener("click", cerrarSesion);
+  document.getElementById("btn-toggle-theme").addEventListener("click", toggleTema);
 
   document.getElementById("modalLogin").addEventListener("shown.bs.modal", function () {
     document.getElementById("input-login-nombre").focus();
