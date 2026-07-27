@@ -1,13 +1,13 @@
 var STORE_PREFIX = "cotizacion-";
-var LOGO_DEFAULT = "img/icon-color.svg";
+var LOGO_DEFAULT = "img/logo-elevatronix-v002.png";
 var ALLOWED_EMAILS = "__ALLOWED_EMAILS__".split(",");
 if (ALLOWED_EMAILS[0] === "__ALLOWED_EMAILS__") {
   ALLOWED_EMAILS = ["elevatronix@gmail.com"];
 }
 var company_info = {
-  empresa: "Mi Empresa S.A.",
-  cuit: "30-12345678-0",
-  email: "info@miempresa.com.ar",
+  empresa: "Elevatronix",
+  cuit: "00-12345678-9",
+  email: "elevatronix@gmail.com",
 };
 var pendingReset = null;
 var pendingDeleteIndex = null;
@@ -255,6 +255,26 @@ function generarPDF() {
       modal.show();
       return;
     }
+
+    var clienteInput = document.getElementById("input-cliente");
+    var direccionInput = document.getElementById("input-direccion");
+    var valid = true;
+
+    if (!clienteInput.value.trim()) {
+      clienteInput.classList.add("is-invalid");
+      valid = false;
+    } else {
+      clienteInput.classList.remove("is-invalid");
+    }
+
+    if (!direccionInput.value.trim()) {
+      direccionInput.classList.add("is-invalid");
+      valid = false;
+    } else {
+      direccionInput.classList.remove("is-invalid");
+    }
+
+    if (!valid) return;
 
     var nro = obtenerSiguienteNro();
     var sugerencia = "Cotizacion_" + nro + ".pdf";
@@ -806,6 +826,13 @@ function init() {
 
   document.querySelectorAll("[data-persist]").forEach(function (el) {
     el.addEventListener("input", guardarDatos);
+  });
+
+  document.getElementById("input-cliente").addEventListener("input", function () {
+    this.classList.remove("is-invalid");
+  });
+  document.getElementById("input-direccion").addEventListener("input", function () {
+    this.classList.remove("is-invalid");
   });
 
   document.querySelectorAll(".currency-option").forEach(function (btn) {

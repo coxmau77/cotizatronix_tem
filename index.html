@@ -61,7 +61,7 @@
     <div id="view-home" class="view d-flex align-items-center justify-content-center">
         <div class="text-center px-3">
             <!-- <img src="img/icon-color.svg" alt="Cotizatronix" width="100" height="100" class="mb-4"> -->
-            <img src="/img/logo-elevatronix-v002.png" alt="Cotizatronix" width="100" height="100" class="mb-4">
+            <img src="./img/logo-elevatronix-v002.png" alt="Cotizatronix" width="100" height="100" class="mb-4">
             <!-- <h1 class="display-4 fw-bold text-brand">Cotizatronix</h1> -->
             <h1 class="display-4 fw-bold text-brand">Elevatronix</h1>
             <p class="text-muted mb-5 fs-5">Generador de cotizaciones profesionales</p>
@@ -89,7 +89,7 @@
 
             <!-- Header: Emisor -->
             <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom" id="emisor-header">
-                <img id="preview-logo" src="img/icon-color.svg" alt="Logo"
+                <img id="preview-logo" src="img/logo-elevatronix-v002.png" alt="Logo"
                     style="width: 48px; height: 48px; object-fit: contain;">
                 <div>
                     <h5 class="mb-0 fw-bold" id="header-empresa">Mi Empresa S.A.</h5>
@@ -113,11 +113,13 @@
                         <input type="text" class="form-control" id="input-cliente" placeholder="Empresa Cliente"
                             data-persist="cliente-nombre">
                         <label for="input-cliente">Empresa Cliente</label>
+                        <div class="invalid-feedback">Ingresá el nombre del cliente.</div>
                     </div>
                     <div class="form-floating">
                         <input type="text" class="form-control" id="input-direccion" placeholder="Planta / Dirección"
                             data-persist="cliente-direccion">
                         <label for="input-direccion">Planta / Dirección</label>
+                        <div class="invalid-feedback">Ingresá la dirección o planta.</div>
                     </div>
                 </div>
             </div>
