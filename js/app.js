@@ -614,15 +614,15 @@ function actualizarVencimiento() {
 }
 
 function actualizarNavbar(nombre, email) {
-  var el = document.getElementById("navbar-email");
-  el.textContent = nombre + " <" + email + ">";
-  el.style.display = "inline";
+  document.getElementById("navbar-name").textContent = nombre;
+  document.getElementById("navbar-email").textContent = email;
+  document.getElementById("navbar-user-info").style.display = "block";
   document.getElementById("user-menu").style.display = "inline-block";
 }
 
 function cerrarSesion() {
   sessionStorage.removeItem(STORE_PREFIX + "email");
-  document.getElementById("navbar-email").style.display = "none";
+  document.getElementById("navbar-user-info").style.display = "none";
   document.getElementById("user-menu").style.display = "none";
   var dropdown = bootstrap.Dropdown.getInstance(
     document.querySelector("#user-menu .dropdown-toggle")

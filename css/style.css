@@ -194,13 +194,24 @@ body {
   color: #fff;
 }
 
-/* --- Navbar email --- */
-#navbar-email {
+/* --- Navbar user info --- */
+.navbar-user-info {
+  line-height: 1.2;
+}
+
+.navbar-email {
   opacity: 0.85;
-  max-width: 180px;
+  font-size: 0.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 180px;
+}
+
+@media (max-width: 575.98px) {
+  #navbar-user-info {
+    display: none !important;
+  }
 }
 
 /* --- Historial list --- */
